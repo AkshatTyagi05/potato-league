@@ -43,18 +43,30 @@ bot = RLBot()
 async def rank(interaction: discord.Interaction, platform: str, username: str):
     # Standardize platform input to lowercase
     platform = platform.lower()
-    url = f"https://public-api.tracker.gg/v2/rocket-league/standard/profile/{platform}/{username}"
+    # Try this version if the headers still don't work
+    # url = f"https://public-api.tracker.gg/v2/rocket-league/standard/profile/{platform}/{username}?api_key={TRACKER_KEY}"
+
+    headers = {
+        # 'TRN-Api-Key': str(TRACKER_KEY).strip(),
+        'User-Agent': 'Thunder Client (https://www.thunderclient.com)' # Helps prevent blocks from the API server
+    }
+    url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{platform}/{username}?"
+
+    response = requests.get(url, headers=headers)
+
+    print(f"DEBUG: Requesting URL: {url}")
+    print(f"DEBUG: TRACKER_KEY is: {TRACKER_KEY}")
     
     # Headers must match Tracker Network requirements exactly
-    headers = {
-        'TRN-Api-Key': TRACKER_KEY,
-        'User-Agent': 'Mozilla/5.0' # Helps prevent blocks from the API server
-    }
+    # response = requests.get(url, headers=headers)
+    print(f"DEBUG: Sent Headers: {response.request.headers}") # Verify what was actually sent
 
     # Defer gives the API up to 15 minutes to respond
     await interaction.response.defer()
+    print(response.text)
 
     try:
+        print(headers)
         response = requests.get(url, headers=headers)
         
         if response.status_code == 200:
