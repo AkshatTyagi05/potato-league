@@ -8,57 +8,109 @@ from dotenv import load_dotenv
 
 # Custom mapping for Rank Icons (Example URLs - Replace with your preferred hosting or CDN)
 
-def create_rank_card(username, platform_name, segments):
-    # 1. Load Background
-    base = Image.open("background.png").convert("RGBA")
-    base = base.resize((850, 480), Image.Resampling.LANCZOS) # Forces correct size
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def create_rank_card(username, platform_name, segments, reward_level="Champion"):
+    # 1. Canvas Setup
+    base = Image.open(os.path.join(BASE_DIR, "background.png")).convert("RGBA")
+    base = base.resize((850, 550))
     draw = ImageDraw.Draw(base)
     
-    # 2. Load Fonts
-    font_large = ImageFont.truetype("TitilliumWeb-Bold.ttf", 36)
-    font_small = ImageFont.truetype("TitilliumWeb-Regular.ttf", 20)
-    
-    # 3. Draw Header (Username and Platform)
-    draw.text((40, 30), f"The Goat:  {username}", font=font_large, fill=(255, 255, 255))
-    draw.text((700, 35), "this nga is trash", font=font_small, fill=(219, 90, 115))
+    # Color mapping for rank accent colors
+    rank_colors = {
+        "bronze": (205, 127, 50), "silver": (192, 192, 192), "gold": (255, 215, 0),
+        "platinum": (0, 255, 255), "diamond": (0, 191, 255), "champion": (160, 32, 240),
+        "grand_champion": (255, 0, 0), "supersonic_legend": (255, 255, 255), "unranked": (150, 150, 150)
+    }
 
-    # 4. Draw Stats (Looping through playlists)
-    # Positions based on a 2x2 grid layout
-    positions = [(40, 120), (420, 120), (40, 280), (420, 280)]
+    # 2. Fonts
+    try:
+        font_main = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 32)
+        font_sub = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 18)
+        font_small = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 14)
+    except:
+        font_main = ImageFont.load_default()
+        font_sub = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+
+    platform_map = {
+        "epic": "epic.png",
+        "steam": "steam.png",
+        "xbl": "xbl.png",
+        "psn": "psn.png",
+        "xbox": "xbl.png",
+        "playstation": "psn.png"
+    }
+
+    # Get filename from mapping or default to epic
+    input_plat = platform_name.lower().split()[0]
+    filename = platform_map.get(input_plat, "epic.png")
+    plat_icon_path = os.path.join(BASE_DIR, "icons", filename)
+
+    # --- 3. TOP NAVBAR WITH PLATFORM ICON ---
+    # Draw header tile
+    draw.rounded_rectangle([25, 20, 825, 80], radius=10, fill=(30, 34, 43))
     
-    playlist_count = 0
+    
+    if os.path.exists(plat_icon_path):
+        p_img = Image.open(plat_icon_path).convert("RGBA")
+        
+        # PROPORTIONAL RESIZE: Prevent squeezing
+        max_size = 40
+        ratio = min(max_size / p_img.width, max_size / p_img.height)
+        new_size = (int(p_img.width * ratio), int(p_img.height * ratio))
+        plat_icon = p_img.resize(new_size, Image.Resampling.LANCZOS)
+        
+        # Center the icon vertically in the 60px bar
+        # Header is y=20 to y=80 (height 60). Middle is y=50.
+        icon_y = 50 - (new_size[1] // 2)
+        base.paste(plat_icon, (45, icon_y), mask=plat_icon)
+    else:
+        print(f"⚠️ Platform icon NOT FOUND: {plat_icon_path}")
+
+    # FIXED: Decreased y from 35 to 28 to move the username slightly UP
+    draw.text((100, 26), f"{username.upper()}", font=font_main, fill=(255, 255, 255))
+    
+    # Reward Level (Champion text on the right)
+    draw.text((720, 40), reward_level, font=font_sub, fill=(219, 90, 115))
+
+    # --- 4. RANK TILES ---
+    positions = [(25, 100), (435, 100), (25, 320), (435, 320)]
+    count = 0
+
     for s in segments:
-        if s['type'] == 'playlist' and playlist_count < 4:
-            x, y = positions[playlist_count]
+        if s['type'] == 'playlist' and count < 4:
+            x, y = positions[count]
+            draw.rounded_rectangle([x, y, x + 390, y + 200], radius=10, fill=(30, 34, 43))
             
-            mode_name = s['metadata']['name']
+            # Data Extraction
             tier = s['stats']['tier']['metadata']['name']
-            mmr = s['stats']['rating']['value']
-            
-            # Draw Mode and Rank Text
-            draw.text((x, y), mode_name, font=font_small, fill=(100, 200, 255))
-            draw.text((x, y + 30), tier, font=font_large, fill=(255, 255, 255))
-            draw.text((x, y + 70), f"{mmr} MMR", font=font_small, fill=(150, 150, 150))
-            
-            # Paste Rank Icon
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
-            icon_path = f"icons/{file_rank}.png"
+            
+            # Determine Rank Color
+            rank_base_name = tier.split()[0].lower()
+            text_color = rank_colors.get(rank_base_name, (255, 255, 255))
 
+            # Column 1 Drawing
+            draw.text((x + 20, y + 20), s['metadata']['name'], font=font_sub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 50), tier, font=font_main, fill=text_color) # Colored Rank Text
+            draw.text((x + 20, y + 90), s['stats'].get('division', {}).get('metadata', {}).get('name', ''), font=font_small, fill=(150, 150, 150))
+            draw.text((x + 20, y + 110), f"{s['stats']['rating']['value']} MMR", font=font_small, fill=(100, 100, 100))
+            draw.text((x + 20, y + 150), f"{s['stats'].get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(150, 150, 150))
+
+            # Column 2: Icon and Streak
+            icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
             if os.path.exists(icon_path):
-                print(f"✅ LOADING: {icon_path}")
-                # Paste code here
-            else:
-                print(f"⚠️ NOT FOUND: {icon_path}") # This will tell you if the path is wrong
+                icon = Image.open(icon_path).convert("RGBA").resize((100, 100))
+                base.paste(icon, (x + 250, y + 30), mask=icon)
 
-            try:
-                icon = Image.open(icon_path).resize((80, 80)).convert("RGBA")
-                base.paste(icon, (x + 230, y + 15), mask=icon)
-            except:
-                pass # Skip if icon file is missing
-                
-            playlist_count += 1
+            streak = s['stats'].get('winStreak', {}).get('value', 0)
+            streak_text = f"{abs(streak)} {'Win' if streak >=0 else 'Loss'}{'s' if abs(streak) != 1 else ''}"
+            streak_color = (0, 255, 100) if streak >= 0 else (255, 60, 60)
+            draw.text((x + 265, y + 150), streak_text, font=font_sub, fill=streak_color)
 
-    # 5. Convert to Discord File
+            count += 1
+
     buffer = io.BytesIO()
     base.save(buffer, format="PNG")
     buffer.seek(0)
