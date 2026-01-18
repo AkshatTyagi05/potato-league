@@ -41,10 +41,18 @@ def create_rank_card(username, platform_name, segments):
             draw.text((x, y + 70), f"{mmr} MMR", font=font_small, fill=(150, 150, 150))
             
             # Paste Rank Icon
-            icon_path = f"icons/{tier.split()[0].lower()}.png"
+            file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
+            icon_path = f"icons/{file_rank}.png"
+
+            if os.path.exists(icon_path):
+                print(f"✅ LOADING: {icon_path}")
+                # Paste code here
+            else:
+                print(f"⚠️ NOT FOUND: {icon_path}") # This will tell you if the path is wrong
+
             try:
                 icon = Image.open(icon_path).resize((80, 80)).convert("RGBA")
-                base.paste(icon, (0, 0), mask=icon)
+                base.paste(icon, (x + 230, y + 15), mask=icon)
             except:
                 pass # Skip if icon file is missing
                 
