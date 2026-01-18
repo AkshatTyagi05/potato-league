@@ -86,7 +86,7 @@ def create_rank_card(username, platform_name,display_name, segments):
             s = segment_map[mode_key]
             stats = s['stats']
             
-            display_mode_name = "Highest Season Finish" if mode_key == 'Tournament Matches' else mode_key
+            display_mode_name = "Tournament Rank" if mode_key == 'Tournament Matches' else mode_key
             tier = stats['tier']['metadata']['name']
             
             # Logic for long rank names
