@@ -10,10 +10,9 @@ from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def create_rank_card(username, platform_name, segments, reward_level="Champion"):
+def create_rank_card(username, platform_name, segments, ):
     # 1. Canvas Setup
-    base = Image.open(os.path.join(BASE_DIR, "background.png")).convert("RGBA")
-    base = base.resize((850, 550))
+    base = Image.new("RGBA", (850, 550), (24, 28, 35))
     draw = ImageDraw.Draw(base)
     
     # Color mapping for rank accent colors
@@ -22,6 +21,13 @@ def create_rank_card(username, platform_name, segments, reward_level="Champion")
         "platinum": (0, 255, 255), "diamond": (0, 191, 255), "champion": (160, 32, 240),
         "grand_champion": (255, 0, 0), "supersonic_legend": (255, 255, 255), "unranked": (150, 150, 150)
     }
+
+    # 2. Extract Reward Level Dynamically
+    reward_level = "Unranked"
+    for s in segments:
+        if s['type'] == 'overview': # TRN often places rewards in the overview segment
+            reward_level = s['stats'].get('seasonRewardLevel', {}).get('metadata', {}).get('rankName', 'Unranked')
+            break
 
     # 2. Fonts
     try:
@@ -75,41 +81,59 @@ def create_rank_card(username, platform_name, segments, reward_level="Champion")
     draw.text((720, 40), reward_level, font=font_sub, fill=(219, 90, 115))
 
     # --- 4. RANK TILES ---
+    # --- 4. RANK TILES (Final Layout with Tournament Fix) ---
     positions = [(25, 100), (435, 100), (25, 320), (435, 320)]
-    count = 0
-
-    for s in segments:
-        if s['type'] == 'playlist' and count < 4:
-            x, y = positions[count]
-            draw.rounded_rectangle([x, y, x + 390, y + 200], radius=10, fill=(30, 34, 43))
+    
+    # Priority list to ensure we get 1v1, 2v2, 3v3, and Tournament specifically
+    # Note: TRN API uses "Tournament Match" for the metadata name
+    desired_modes = ['Ranked Duel 1v1', 'Ranked Doubles 2v2', 'Ranked Standard 3v3', 'Tournament Matches']
+    
+    # Create a dictionary of segments keyed by their metadata name
+    segment_map = {s['metadata']['name']: s for s in segments if s['type'] == 'playlist'}
+    
+    for count, mode_key in enumerate(desired_modes):
+        x, y = positions[count]
+        draw.rounded_rectangle([x, y, x + 390, y + 200], radius=10, fill=(30, 34, 43))
+        
+        if mode_key in segment_map:
+            s = segment_map[mode_key]
+            stats = s['stats']
             
-            # Data Extraction
-            tier = s['stats']['tier']['metadata']['name']
+            # # Use normal tier or fetch Highest Finish for Tournaments
+            # if mode_key == 'Tournament Matches':
+            #     display_mode_name = "Highest Season Finish"
+            #     tier = stats.get('seasonHighest', {}).get('metadata', {}).get('name', stats['tier']['metadata']['name'])
+            # else:
+            display_mode_name = mode_key
+            tier = stats['tier']['metadata']['name']
+            
+            # Rank Color and Logic
+            rank_base = tier.split()[0].lower()
+            text_color = rank_colors.get(rank_base, (255, 255, 255))
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
-            
-            # Determine Rank Color
-            rank_base_name = tier.split()[0].lower()
-            text_color = rank_colors.get(rank_base_name, (255, 255, 255))
 
-            # Column 1 Drawing
-            draw.text((x + 20, y + 20), s['metadata']['name'], font=font_sub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 50), tier, font=font_main, fill=text_color) # Colored Rank Text
-            draw.text((x + 20, y + 90), s['stats'].get('division', {}).get('metadata', {}).get('name', ''), font=font_small, fill=(150, 150, 150))
-            draw.text((x + 20, y + 110), f"{s['stats']['rating']['value']} MMR", font=font_small, fill=(100, 100, 100))
-            draw.text((x + 20, y + 150), f"{s['stats'].get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(150, 150, 150))
+            # Column 1: Stats
+            draw.text((x + 20, y + 20), display_mode_name, font=font_sub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 50), tier, font=font_main, fill=text_color)
+            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_small, fill=(150, 150, 150))
+            draw.text((x + 20, y + 110), f"{stats['rating']['value']} MMR", font=font_small, fill=(100, 100, 100))
+            draw.text((x + 20, y + 150), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(150, 150, 150))
 
-            # Column 2: Icon and Streak
+            # Column 2: Icon and Streak Alignment
             icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
             if os.path.exists(icon_path):
                 icon = Image.open(icon_path).convert("RGBA").resize((100, 100))
                 base.paste(icon, (x + 250, y + 30), mask=icon)
 
-            streak = s['stats'].get('winStreak', {}).get('value', 0)
+            streak = stats.get('winStreak', {}).get('value', 0)
             streak_text = f"{abs(streak)} {'Win' if streak >=0 else 'Loss'}{'s' if abs(streak) != 1 else ''}"
             streak_color = (0, 255, 100) if streak >= 0 else (255, 60, 60)
-            draw.text((x + 265, y + 150), streak_text, font=font_sub, fill=streak_color)
-
-            count += 1
+            # FIXED: Centered at x + 275
+            draw.text((x + 275, y + 150), streak_text, font=font_sub, fill=streak_color)
+        else:
+            # Fallback for unplayed modes
+            draw.text((x + 20, y + 20), mode_key, font=font_sub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 50), "Unranked", font=font_main, fill=(150, 150, 150))
 
     buffer = io.BytesIO()
     base.save(buffer, format="PNG")
