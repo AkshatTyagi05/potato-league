@@ -19,7 +19,7 @@ def create_rank_card(username, platform_name, segments):
     font_small = ImageFont.truetype("TitilliumWeb-Regular.ttf", 20)
     
     # 3. Draw Header (Username and Platform)
-    draw.text((40, 30), f"SHERRY {username}", font=font_large, fill=(255, 255, 255))
+    draw.text((40, 30), f"The Goat:  {username}", font=font_large, fill=(255, 255, 255))
     draw.text((700, 35), "Champion", font=font_small, fill=(219, 90, 115))
 
     # 4. Draw Stats (Looping through playlists)
