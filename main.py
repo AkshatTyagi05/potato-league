@@ -98,8 +98,8 @@ def create_rank_card(username, platform_name,display_name, segments):
             # Column 1: Stats (Slightly moved left to give rank more room)
             draw.text((x + 20, y + 15), display_mode_name, font=font_sub, fill=(100, 200, 255))
             draw.text((x + 20, y + 48), tier, font=current_font, fill=text_color)
-            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
-            draw.text((x + 20, y + 122), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
+            draw.text((x + 20, y + 87), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
+            draw.text((x + 20, y + 120), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
             draw.text((x + 20, y + 160), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(140, 140, 140))
 
             # Column 2: Icon (Shifted right from 250 to 265 to prevent overlap)
