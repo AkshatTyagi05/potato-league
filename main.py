@@ -10,10 +10,20 @@ from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def create_rank_card(username, platform_name, segments, ):
+def create_rank_card(username, platform_name,display_name, segments):
     # 1. Canvas Setup
     base = Image.new("RGBA", (850, 550), (24, 28, 35))
     draw = ImageDraw.Draw(base)
+
+    print(username)
+    print(display_name)
+
+
+    # if(username.lower=="akshattyagi05"):
+    #     display_name= "AkshatTyagi05"
+    #     username="iiRw9"
+    # else:
+    #     display_name= username
     
     # Color mapping for rank accent colors
     rank_colors = {
@@ -30,65 +40,42 @@ def create_rank_card(username, platform_name, segments, ):
             break
 
     # 2. Fonts
+    font_path = os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf")
     try:
-        font_main = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 32)
-        font_sub = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 18)
-        font_small = ImageFont.truetype(os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf"), 14)
+        font_main = ImageFont.truetype(font_path, 32)   
+        font_main_small = ImageFont.truetype(font_path, 26) # Added for long rank names
+        font_sub = ImageFont.truetype(font_path, 20)    
+        font_med = ImageFont.truetype(font_path, 18)    
+        font_small = ImageFont.truetype(font_path, 16)  
     except:
-        font_main = ImageFont.load_default()
-        font_sub = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+        font_main = font_sub = font_med = font_small = ImageFont.load_default()
+        font_main_small = ImageFont.load_default()
 
-    platform_map = {
-        "epic": "epic.png",
-        "steam": "steam.png",
-        "xbl": "xbl.png",
-        "psn": "psn.png",
-        "xbox": "xbl.png",
-        "playstation": "psn.png"
-    }
-
-    # Get filename from mapping or default to epic
+    # --- 4. TOP NAVBAR ---
+    draw.rounded_rectangle([25, 20, 825, 80], radius=10, fill=(30, 34, 43))
+    
+    platform_map = {"epic": "epic.png", "steam": "steam.png", "xbl": "xbl.png", "psn": "psn.png", "xbox": "xbl.png", "playstation": "psn.png"}
     input_plat = platform_name.lower().split()[0]
     filename = platform_map.get(input_plat, "epic.png")
     plat_icon_path = os.path.join(BASE_DIR, "icons", filename)
 
-    # --- 3. TOP NAVBAR WITH PLATFORM ICON ---
-    # Draw header tile
-    draw.rounded_rectangle([25, 20, 825, 80], radius=10, fill=(30, 34, 43))
-    
-    
     if os.path.exists(plat_icon_path):
         p_img = Image.open(plat_icon_path).convert("RGBA")
-        
-        # PROPORTIONAL RESIZE: Prevent squeezing
-        max_size = 40
-        ratio = min(max_size / p_img.width, max_size / p_img.height)
+        ratio = min(40 / p_img.width, 40 / p_img.height)
         new_size = (int(p_img.width * ratio), int(p_img.height * ratio))
         plat_icon = p_img.resize(new_size, Image.Resampling.LANCZOS)
-        
-        # Center the icon vertically in the 60px bar
-        # Header is y=20 to y=80 (height 60). Middle is y=50.
-        icon_y = 50 - (new_size[1] // 2)
-        base.paste(plat_icon, (45, icon_y), mask=plat_icon)
-    else:
-        print(f"⚠️ Platform icon NOT FOUND: {plat_icon_path}")
+        base.paste(plat_icon, (45, 50 - (new_size[1] // 2)), mask=plat_icon)
 
-    # FIXED: Decreased y from 35 to 28 to move the username slightly UP
-    draw.text((100, 26), f"{username.upper()}", font=font_main, fill=(255, 255, 255))
+    draw.text((100, 26), f"{display_name.upper()}", font=font_main, fill=(255, 255, 255))
     
-    # Reward Level (Champion text on the right)
-    draw.text((720, 40), reward_level, font=font_sub, fill=(219, 90, 115))
+    # Adjusted Reward Level position to avoid edge clipping
+    reward_key = reward_level.split()[0].lower()
+    reward_color = rank_colors.get(reward_key, (219, 90, 115))
+    draw.text((640, 38), f"{reward_level}", font=font_sub, fill=reward_color)
 
-    # --- 4. RANK TILES ---
-    # --- 4. RANK TILES (Final Layout with Tournament Fix) ---
+    # --- 5. RANK TILES ---
     positions = [(25, 100), (435, 100), (25, 320), (435, 320)]
-    
-    # Priority list to ensure we get 1v1, 2v2, 3v3, and Tournament specifically
-    # Note: TRN API uses "Tournament Match" for the metadata name
     desired_modes = ['Ranked Duel 1v1', 'Ranked Doubles 2v2', 'Ranked Standard 3v3', 'Tournament Matches']
-    
-    # Create a dictionary of segments keyed by their metadata name
     segment_map = {s['metadata']['name']: s for s in segments if s['type'] == 'playlist'}
     
     for count, mode_key in enumerate(desired_modes):
@@ -99,50 +86,39 @@ def create_rank_card(username, platform_name, segments, ):
             s = segment_map[mode_key]
             stats = s['stats']
             
-            # # Use normal tier or fetch Highest Finish for Tournaments
-            # if mode_key == 'Tournament Matches':
-            #     display_mode_name = "Highest Season Finish"
-            #     tier = stats.get('seasonHighest', {}).get('metadata', {}).get('name', stats['tier']['metadata']['name'])
-            # else:
-            display_mode_name = mode_key
+            display_mode_name = "Highest Season Finish" if mode_key == 'Tournament Matches' else mode_key
             tier = stats['tier']['metadata']['name']
             
-            # Rank Color and Logic
+            # Logic for long rank names
+            current_font = font_main_small if len(tier) > 15 else font_main
             rank_base = tier.split()[0].lower()
             text_color = rank_colors.get(rank_base, (255, 255, 255))
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
 
-            # Column 1: Stats
-            draw.text((x + 20, y + 20), display_mode_name, font=font_sub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 50), tier, font=font_main, fill=text_color)
-            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_small, fill=(150, 150, 150))
-            draw.text((x + 20, y + 110), f"{stats['rating']['value']} MMR", font=font_small, fill=(100, 100, 100))
-            draw.text((x + 20, y + 150), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(150, 150, 150))
+            # Column 1: Stats (Slightly moved left to give rank more room)
+            draw.text((x + 20, y + 15), display_mode_name, font=font_sub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 48), tier, font=current_font, fill=text_color)
+            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
+            draw.text((x + 20, y + 122), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
+            draw.text((x + 20, y + 160), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(140, 140, 140))
 
-            # Column 2: Icon and Streak Alignment
+            # Column 2: Icon (Shifted right from 250 to 265 to prevent overlap)
             icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
             if os.path.exists(icon_path):
-                icon = Image.open(icon_path).convert("RGBA").resize((100, 100))
-                base.paste(icon, (x + 250, y + 30), mask=icon)
+                icon = Image.open(icon_path).convert("RGBA").resize((110, 110)) # Slightly bigger icon
+                base.paste(icon, (x + 265, y + 23), mask=icon)
 
-            # --- STREAK LOGIC (BASED ON YOUR JSON) ---
             streak_data = stats.get('winStreak', {})
             val = streak_data.get('value', 0)
-            stype = streak_data.get('metadata', {}).get('type', 'win') # From your screenshot
+            stype = streak_data.get('metadata', {}).get('type', 'win') 
             
-            if stype == 'loss':
-                streak_text = f"{val} {'Loss' if val == 1 else 'Losses'}"
-                streak_color = (255, 60, 60) # Red
-            else:
-                streak_text = f"{val} {'Win' if val == 1 else 'Wins'}"
-                streak_color = (0, 255, 100) # Green
-
-            draw.text((x + 275, y + 150), streak_text, font=font_sub, fill=streak_color)
-       
+            streak_text = f"{val} {'Loss' if stype == 'loss' and val == 1 else 'Losses' if stype == 'loss' else 'Win' if val == 1 else 'Wins'}"
+            streak_color = (255, 60, 60) if stype == 'loss' else (0, 255, 100)
+            # Centered under the new icon position
+            draw.text((x + 295, y + 160), streak_text, font=font_med, fill=streak_color)
         else:
-            # Fallback for unplayed modes
             draw.text((x + 20, y + 20), mode_key, font=font_sub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 50), "Unranked", font=font_main, fill=(150, 150, 150))
+            draw.text((x + 20, y + 55), "Unranked", font=font_main, fill=(150, 150, 150))
 
     buffer = io.BytesIO()
     base.save(buffer, format="PNG")
@@ -195,6 +171,12 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
     
     url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{platform.value}/{username}"
     print(f"DEBUG: Testing this URL manually: {url}")
+    if(username.lower()=="akshattyagi05"):
+        display_name= "AkshatTyagi05"
+        username="iiRw9"
+        url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/iiRw9"
+    else:
+        display_name= username
     
     # These headers match what a real browser sends
     headers = {
@@ -218,8 +200,13 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
             data = response.json()
             segments = data['data']['segments']
 
+
+            #akshattyagi gooatt
+
+            
+
             # Generate the custom image
-            rank_card_file = create_rank_card(username, platform.name, segments)
+            rank_card_file = create_rank_card(username, platform.name,display_name, segments)
             await interaction.followup.send(file=rank_card_file)
             
         elif response.status_code == 401:
