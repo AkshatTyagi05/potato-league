@@ -125,11 +125,20 @@ def create_rank_card(username, platform_name, segments, ):
                 icon = Image.open(icon_path).convert("RGBA").resize((100, 100))
                 base.paste(icon, (x + 250, y + 30), mask=icon)
 
-            streak = stats.get('winStreak', {}).get('value', 0)
-            streak_text = f"{abs(streak)} {'Win' if streak >=0 else 'Loss'}{'s' if abs(streak) != 1 else ''}"
-            streak_color = (0, 255, 100) if streak >= 0 else (255, 60, 60)
-            # FIXED: Centered at x + 275
+            # --- STREAK LOGIC (BASED ON YOUR JSON) ---
+            streak_data = stats.get('winStreak', {})
+            val = streak_data.get('value', 0)
+            stype = streak_data.get('metadata', {}).get('type', 'win') # From your screenshot
+            
+            if stype == 'loss':
+                streak_text = f"{val} {'Loss' if val == 1 else 'Losses'}"
+                streak_color = (255, 60, 60) # Red
+            else:
+                streak_text = f"{val} {'Win' if val == 1 else 'Wins'}"
+                streak_color = (0, 255, 100) # Green
+
             draw.text((x + 275, y + 150), streak_text, font=font_sub, fill=streak_color)
+       
         else:
             # Fallback for unplayed modes
             draw.text((x + 20, y + 20), mode_key, font=font_sub, fill=(100, 200, 255))
