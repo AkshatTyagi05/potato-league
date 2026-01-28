@@ -5,12 +5,49 @@ from discord import app_commands
 from curl_cffi import requests  # Use curl_cffi instead of standard requests
 import os
 from dotenv import load_dotenv
+import random # Add this at the top of your script
+
+# List of possible messages
+random_messages = [
+    "Chat… we pulled the ranks. It’s not looking good for bro.",
+    "We got the ranks and I’m crying.",
+    "These the ranks… imma let y’all process that.",
+    "Ranked? Yeah. Respected? Debatable.",
+    "We found the ranks and chat went silent.",
+    "{user}  This the rank? Oh nah 💀",
+    "{user}  We did the scan and I’m wheezing.",
+    "{user}  This what you wanted us to check? Crazy.",
+    "Ranks obtained. Therapist contacted.",
+    "I’d keep this private if I were you {user}.",
+    "These the ranks. I need a moment {user}.",
+    "{user}  These the ranks… imma hold your hand when I say this…",
+    "This ain’t even mid, this is tragic-core.",
+    "We pulled your ranks. You’re not him.",
+    "This ain’t leaderboard behavior.",
+    "Telemetry confirms… skill deficiency.",
+    "Packet analysis done. You not built for this..",
+    "We checked the system and the system judged you back.",
+    "These ranks just humbled the whole server.",
+    "{user} I looked it up so you didn’t have to.",
+    "System report generated. Proceed with caution.",
+    "{user} I wasn’t ready for this information.",
+]
 
 # Custom mapping for Rank Icons (Example URLs - Replace with your preferred hosting or CDN)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def create_rank_card(username, platform_name,display_name, segments):
+def create_rank_card(username, platform_name,display_name, segments,mode_type="standard"):
+    
+    
+    if mode_type == "extras":
+        desired_modes = ['Rumble', 'Dropshot', 'Hoops', 'Heatseeker']
+    else:
+        desired_modes = ['Ranked Duel 1v1', 'Ranked Doubles 2v2', 'Ranked Standard 3v3', 'Tournament Matches']
+        
+    print(mode_type)
+
+
     # 1. Canvas Setup
     base = Image.new("RGBA", (850, 550), (24, 28, 35))
     draw = ImageDraw.Draw(base)
@@ -44,12 +81,16 @@ def create_rank_card(username, platform_name,display_name, segments):
     try:
         font_main = ImageFont.truetype(font_path, 32)   
         font_main_small = ImageFont.truetype(font_path, 26) # Added for long rank names
+        font_bigsub = ImageFont.truetype(font_path, 22)    
         font_sub = ImageFont.truetype(font_path, 20)    
         font_med = ImageFont.truetype(font_path, 18)    
-        font_small = ImageFont.truetype(font_path, 16)  
+        font_smallmed = ImageFont.truetype(font_path, 17)  
+        font_small = ImageFont.truetype(font_path, 16)
     except:
         font_main = font_sub = font_med = font_small = ImageFont.load_default()
         font_main_small = ImageFont.load_default()
+
+
 
     # --- 4. TOP NAVBAR ---
     draw.rounded_rectangle([25, 20, 825, 80], radius=10, fill=(30, 34, 43))
@@ -66,7 +107,7 @@ def create_rank_card(username, platform_name,display_name, segments):
         plat_icon = p_img.resize(new_size, Image.Resampling.LANCZOS)
         base.paste(plat_icon, (45, 50 - (new_size[1] // 2)), mask=plat_icon)
 
-    draw.text((100, 26), f"{display_name.upper()}", font=font_main, fill=(255, 255, 255))
+    draw.text((100, 26), f"{display_name}", font=font_main, fill=(255, 255, 255))
     
     # Adjusted Reward Level position to avoid edge clipping
     reward_key = reward_level.split()[0].lower()
@@ -75,7 +116,6 @@ def create_rank_card(username, platform_name,display_name, segments):
 
     # --- 5. RANK TILES ---
     positions = [(25, 100), (435, 100), (25, 320), (435, 320)]
-    desired_modes = ['Ranked Duel 1v1', 'Ranked Doubles 2v2', 'Ranked Standard 3v3', 'Tournament Matches']
     segment_map = {s['metadata']['name']: s for s in segments if s['type'] == 'playlist'}
     
     for count, mode_key in enumerate(desired_modes):
@@ -96,10 +136,10 @@ def create_rank_card(username, platform_name,display_name, segments):
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
 
             # Column 1: Stats (Slightly moved left to give rank more room)
-            draw.text((x + 20, y + 15), display_mode_name, font=font_sub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 48), tier, font=current_font, fill=text_color)
-            draw.text((x + 20, y + 87), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
-            draw.text((x + 20, y + 120), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
+            draw.text((x + 20, y + 15), display_mode_name, font=font_bigsub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 53), tier, font=current_font, fill=text_color)
+            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
+            draw.text((x + 20, y + 121), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
             draw.text((x + 20, y + 160), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(140, 140, 140))
 
             # Column 2: Icon (Shifted right from 250 to 265 to prevent overlap)
@@ -112,10 +152,10 @@ def create_rank_card(username, platform_name,display_name, segments):
             val = streak_data.get('value', 0)
             stype = streak_data.get('metadata', {}).get('type', 'win') 
             
-            streak_text = f"{val} {'Loss' if stype == 'loss' and val == 1 else 'Losses' if stype == 'loss' else 'Win' if val == 1 else 'Wins'}"
+            streak_text = f"{val} {'Loss' if stype == 'loss' and val == 1 else 'Loss' if stype == 'loss' else 'Win' if val == 1 else 'Wins'}"
             streak_color = (255, 60, 60) if stype == 'loss' else (0, 255, 100)
             # Centered under the new icon position
-            draw.text((x + 295, y + 160), streak_text, font=font_med, fill=streak_color)
+            draw.text((x + 295, y + 160), streak_text, font=font_smallmed, fill=streak_color)
         else:
             draw.text((x + 20, y + 20), mode_key, font=font_sub, fill=(100, 200, 255))
             draw.text((x + 20, y + 55), "Unranked", font=font_main, fill=(150, 150, 150))
@@ -156,6 +196,57 @@ class RLBot(discord.Client):
         print(f"✅ Commands Synced. Logged in as: {self.user}")
 
 bot = RLBot()
+
+class RankView(discord.ui.View):
+    def __init__(self, username, platform_name, display_name, segments):
+        super().__init__(timeout=None)
+        self.username = username
+        self.platform_name = platform_name
+        self.display_name = display_name
+        self.segments = segments
+        self.current_mode = "standard" # Initial state
+
+    async def send_new_card(self, interaction: discord.Interaction):
+        # 1. Defer to give PIL time to generate the image
+        await interaction.response.defer()
+        
+        # 2. Use the updated self.current_mode to generate the card
+        file = create_rank_card(
+            self.username, 
+            self.platform_name, 
+            self.display_name, 
+            self.segments, 
+            mode_type=self.current_mode # Pass the current mode here!
+        )
+        
+        # 3. Send the brand new card as a follow-up
+        selected_text = random.choice(random_messages).format(user=interaction.user.mention)
+
+        await interaction.followup.send(
+            content=selected_text,
+            file=file,
+            view=self
+        )
+
+    @discord.ui.button(label="Extras", style=discord.ButtonStyle.gray, emoji="🏀")
+    async def extras_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Toggle logic: If standard, switch to extras and vice-versa
+        if self.current_mode == "standard":
+            self.current_mode = "extras"
+            button.label = "Standard"
+            button.emoji = "⚽"  # Switch to Football for Extra Modes
+        else:
+            self.current_mode = "standard"
+            button.label = "Extras"
+            button.emoji = "🏀"  # Switch back to Basketball for Standard
+            
+        await self.send_new_card(interaction)
+
+    @discord.ui.button(label="Update", style=discord.ButtonStyle.gray, emoji="🔄")
+    async def refresh_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Refresh uses the same mode we are currently on
+        await self.send_new_card(interaction)
+
 
 # 3. THE RANK COMMAND
 @bot.tree.command(name="rank", description="Get Rocket League ranks using browser impersonation")
@@ -201,13 +292,19 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
             segments = data['data']['segments']
 
 
-            #akshattyagi gooatt
-
+            view = RankView(username, platform.name, display_name, segments)
             
+            # Generate the initial "standard" image
+            file = create_rank_card(username, platform.name, display_name, segments, mode_type="standard")
+            
+            # Send the message with both the file and the buttons
+            selected_text = random.choice(random_messages).format(user=interaction.user.mention)
 
-            # Generate the custom image
-            rank_card_file = create_rank_card(username, platform.name,display_name, segments)
-            await interaction.followup.send(file=rank_card_file)
+            await interaction.followup.send(
+                content=selected_text,
+                file=file,
+                view=view
+            )
             
         elif response.status_code == 401:
             await interaction.followup.send("❌ 401: API Key rejected. Check TRN-Api-Key in apikey.env")
