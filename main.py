@@ -266,7 +266,7 @@ class RankView(discord.ui.View):
 
 
 # 3. THE RANK COMMAND
-@bot.tree.command(name="rank", description="Get Rocket League ranks using browser impersonation")
+@bot.tree.command(name="rank", description="Get Rocket League ranks by searching Username")
 @app_commands.describe(platform="Platform (epic, steam, psn, xbl)", username="Player ID")
 
 @app_commands.choices(platform=[
