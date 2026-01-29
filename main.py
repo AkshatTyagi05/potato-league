@@ -6,6 +6,23 @@ from curl_cffi import requests  # Use curl_cffi instead of standard requests
 import os
 from dotenv import load_dotenv
 import random # Add this at the top of your script
+import sqlite3
+
+# Initialize the database and table
+def init_db():
+    conn = sqlite3.connect("bot_data.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            discord_id INTEGER PRIMARY KEY,
+            rl_username TEXT,
+            rl_platform TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # List of possible messages
 random_messages = [
@@ -318,6 +335,79 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
     except Exception as e:
         print(f"DEBUG Error: {e}")
         await interaction.followup.send("❌ An unexpected error occurred. Check terminal for logs.")
+
+@bot.tree.command(name="ranklink", description="Link your Rocket League account to your Discord ID")
+@app_commands.describe(platform="Select your platform", username="Your Rocket League Username/ID")
+# Add the choices decorator here
+@app_commands.choices(platform=[
+    app_commands.Choice(name="Epic Games", value="epic"),
+    app_commands.Choice(name="Steam", value="steam"),
+    app_commands.Choice(name="PlayStation", value="psn"),
+    app_commands.Choice(name="Xbox", value="xbl")
+])
+async def ranklink(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
+    await interaction.response.defer(ephemeral=True)
+    
+    conn = sqlite3.connect("bot_data.db")
+    cursor = conn.cursor()
+    
+    # Use platform.value to save the ID (e.g., 'epic') and platform.name for the display
+    cursor.execute(
+        "INSERT OR REPLACE INTO users (discord_id, rl_username, rl_platform) VALUES (?, ?, ?)",
+        (interaction.user.id, username, platform.value)
+    )
+    
+    conn.commit()
+    conn.close()
+    
+    await interaction.followup.send(f"✅ Linked **{username}** ({platform.name}) to your account! You can now use `/rankme`.")
+
+
+
+@bot.tree.command(name="rankme", description="Show your own Rocket League ranks")
+async def rankme(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    # 1. Check Database for the user
+    conn = sqlite3.connect("bot_data.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT rl_username, rl_platform FROM users WHERE discord_id = ?", (interaction.user.id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        return await interaction.followup.send("❌ You haven't linked your account! Use `/ranklink` first.")
+    
+    saved_username, saved_platform = result
+    
+    # 2. Reuse your existing rank fetching logic here
+    url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{saved_platform}/{saved_username}"
+    headers = {
+        # 'TRN-Api-Key': str(TRACKER_KEY).strip(),
+        'Accept': 'application/json, text/plain, */*',
+        'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': 'https://rocketleague.tracker.network/',
+    }
+
+    print(f"DEBUG: Testing this URL manually: {url}")
+    
+    try:
+        response = requests.get(url, headers=headers, impersonate="chrome")
+        if response.status_code == 200:
+            segments = response.json()['data']['segments']
+            
+            # Using your existing View and Card functions
+            view = RankView(saved_username, saved_platform, saved_username, segments)
+            file = create_rank_card(saved_username, saved_platform, saved_username, segments)
+            
+            selected_text = random.choice(random_messages).format(user=interaction.user.mention)
+            await interaction.followup.send(content=selected_text, file=file, view=view)
+        else:
+            await interaction.followup.send("❌ Could not fetch stats. Your linked account might be private or invalid.")
+    except Exception as e:
+        print(f"DEBUG Error: {e}")
+        await interaction.followup.send("❌ An error occurred while fetching your ranks.")
 
 # 4. RUN THE BOT
 if TOKEN:
