@@ -18,6 +18,10 @@ intents.message_content = True  # Required for prefix commands
 # Make sure this line is ABOVE your @bot.event
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+@bot.event
+async def on_ready():
+    init_db() # Create the table before any commands are used
+    print(f'Logged in as {bot.user}')
 
 def get_db_connection():
     # If /data exists (on Railway), use it. Otherwise, use local (for your PC).
@@ -43,10 +47,6 @@ def init_db():
     conn.close()
     print(f"✅ Database initialized at {db_path}")
 
-@bot.event
-async def on_ready():
-    init_db() # Create the table before any commands are used
-    print(f'Logged in as {bot.user}')
 
 # List of possible messages
 random_messages = [
