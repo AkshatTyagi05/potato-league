@@ -7,6 +7,16 @@ import os
 from dotenv import load_dotenv
 import random # Add this at the top of your script
 import sqlite3
+from discord.ext import commands
+from discord import app_commands
+
+# 1. Setup Intents
+intents = discord.Intents.default()
+intents.message_content = True  # Required for prefix commands
+
+# 2. DEFINE THE BOT VARIABLE FIRST
+# Make sure this line is ABOVE your @bot.event
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 def get_db_connection():
