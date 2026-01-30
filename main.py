@@ -16,8 +16,12 @@ def get_db_connection():
 
 # Initialize the database and table
 def init_db():
-    conn = get_db_connection()
+    # Use the Volume path if it exists, otherwise use local for testing
+    db_path = "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
+    
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    # This creates the 'users' table if it's missing
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             discord_id INTEGER PRIMARY KEY,
@@ -27,8 +31,12 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+    print(f"✅ Database initialized at {db_path}")
 
-init_db()
+@bot.event
+async def on_ready():
+    init_db() # Create the table before any commands are used
+    print(f'Logged in as {bot.user}')
 
 # List of possible messages
 random_messages = [
