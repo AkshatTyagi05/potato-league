@@ -10,23 +10,9 @@ import sqlite3
 from discord.ext import commands
 from discord import app_commands
 
-# 1. Setup Intents
-intents = discord.Intents.default()
-intents.message_content = True  # Required for prefix commands
-
-# 2. DEFINE THE BOT VARIABLE FIRST
-# Make sure this line is ABOVE your @bot.event
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-@bot.event
-async def on_ready():
-    init_db() # Create the table before any commands are used
-    print(f'Logged in as {bot.user}')
-
-def get_db_connection():
-    # If /data exists (on Railway), use it. Otherwise, use local (for your PC).
-    db_path = "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
-    return sqlite3.connect(db_path)
+def get_db_path():
+    # If on Railway with a volume mounted at /data, use it. Else local.
+    return "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
 
 # Initialize the database and table
 def init_db():
@@ -46,6 +32,25 @@ def init_db():
     conn.commit()
     conn.close()
     print(f"✅ Database initialized at {db_path}")
+
+# FORCE THE RUN IMMEDIATELY
+init_db()
+
+# --- 2. BOT CLASS ---
+class RLBot(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        # Ensure these intents are enabled
+        intents.members = True 
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        # Syncing commands
+        await self.tree.sync()
+        print(f"✅ Slash commands synced for {self.user}")
+
+bot = RLBot()
 
 
 # List of possible messages
