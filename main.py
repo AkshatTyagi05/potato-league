@@ -8,9 +8,15 @@ from dotenv import load_dotenv
 import random # Add this at the top of your script
 import sqlite3
 
+
+def get_db_connection():
+    # If /data exists (on Railway), use it. Otherwise, use local (for your PC).
+    db_path = "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
+    return sqlite3.connect(db_path)
+
 # Initialize the database and table
 def init_db():
-    conn = sqlite3.connect("bot_data.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
