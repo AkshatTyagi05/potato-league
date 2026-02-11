@@ -436,7 +436,7 @@ async def rankme(interaction: discord.Interaction):
     db_path = get_db_path()
     
     # 1. Check Database for the user
-    conn = sqlite3.connect("bot_data.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT rl_username, rl_platform FROM users WHERE discord_id = ?", (interaction.user.id,))
     result = cursor.fetchone()
