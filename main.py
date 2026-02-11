@@ -387,6 +387,8 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
         print(f"DEBUG Error: {e}")
         await interaction.followup.send("❌ An unexpected error occurred. Check terminal for logs.")
 
+
+
 @bot.tree.command(name="ranklink", description="Link your Rocket League account to your Discord ID")
 @app_commands.describe(platform="Select your platform", username="Your Rocket League Username/ID")
 # Add the choices decorator here
@@ -398,6 +400,9 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
 ])
 async def ranklink(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
     await interaction.response.defer(ephemeral=True)
+
+    # FIX: Define the path variable by calling your helper function
+    path = get_db_path()
     
     try:
         conn = sqlite3.connect(db_path)
@@ -427,6 +432,8 @@ async def ranklink(interaction: discord.Interaction, platform: app_commands.Choi
 @bot.tree.command(name="rankme", description="Show your own Rocket League ranks")
 async def rankme(interaction: discord.Interaction):
     await interaction.response.defer()
+
+    path = get_db_path()
     
     # 1. Check Database for the user
     conn = sqlite3.connect("bot_data.db")
