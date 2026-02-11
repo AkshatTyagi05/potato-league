@@ -348,7 +348,7 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
     print(f"DEBUG: Testing this URL manually: {url}")
 
     # Inform Discord that the bot is thinking (prevents "interaction failed" timeout)
-    await interaction.response.defer()
+    # await interaction.response.defer()
 
     try:
         # We use impersonate="chrome" to mimic a real Chrome browser's TLS fingerprint
