@@ -322,6 +322,10 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
         'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://rocketleague.tracker.network/',
+        "Origin": "https://rocketleague.tracker.network",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
     }
 
     print(f"DEBUG: Testing this URL manually: {url}")
@@ -422,7 +426,7 @@ async def rankme(interaction: discord.Interaction):
     print(f"DEBUG: Testing this URL manually: {url}")
     
     try:
-        response = requests.get(url, headers=headers, impersonate="chrome")
+        response = requests.get(url, headers=headers, impersonate="chrome120")
         if response.status_code == 200:
             segments = response.json()['data']['segments']
             
