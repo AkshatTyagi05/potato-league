@@ -12,17 +12,18 @@ from discord.ext import commands
 from discord import app_commands
 
 def get_db_path():
-    # If on Railway with a volume mounted at /data, use it. Else local.
-    return "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
+    if os.path.exists("/data"):
+        return "/data/bot_data.db"
+    
+    # This creates an absolute path to your current folder
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_data.db")
 
 # Initialize the database and table
 def init_db():
-    # Use the Volume path if it exists, otherwise use local for testing
-    db_path = "/data/bot_data.db" if os.path.exists("/data") else "bot_data.db"
-    
+    db_path = get_db_path()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    # This creates the 'users' table if it's missing
+    # Create table if it doesn't exist
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             discord_id INTEGER PRIMARY KEY,
@@ -32,9 +33,9 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-    print(f"✅ Database initialized at {db_path}")
+    print(f"✅ Database initialized at: {db_path}")
 
-# FORCE THE RUN IMMEDIATELY
+# IMPORTANT: Call this immediately before the bot class starts
 init_db()
 
 # --- 2. BOT CLASS ---
@@ -183,8 +184,8 @@ def create_rank_card(username, platform_name,display_name, segments,mode_type="s
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
 
             # Column 1: Stats (Slightly moved left to give rank more room)
-            draw.text((x + 20, y + 15), display_mode_name, font=font_bigsub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 53), tier, font=current_font, fill=text_color)
+            draw.text((x + 20, y + 13), display_mode_name, font=font_bigsub, fill=(100, 200, 255))
+            draw.text((x + 20, y + 52), tier, font=current_font, fill=text_color)
             draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
             draw.text((x + 20, y + 121), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
             draw.text((x + 20, y + 160), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(140, 140, 140))
@@ -398,19 +399,28 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
 async def ranklink(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
     await interaction.response.defer(ephemeral=True)
     
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
-    
-    # Use platform.value to save the ID (e.g., 'epic') and platform.name for the display
-    cursor.execute(
-        "INSERT OR REPLACE INTO users (discord_id, rl_username, rl_platform) VALUES (?, ?, ?)",
-        (interaction.user.id, username, platform.value)
-    )
-    
-    conn.commit()
-    conn.close()
-    
-    await interaction.followup.send(f"✅ Linked **{username}** ({platform.name}) to your account! You can now use `/rankme`.")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # INSERT OR REPLACE keeps the DB clean by updating existing users
+        cursor.execute(
+            "INSERT OR REPLACE INTO users (discord_id, rl_username, rl_platform) VALUES (?, ?, ?)",
+            (interaction.user.id, username, platform.value)
+        )
+        conn.commit()
+        conn.close()
+        
+        await interaction.followup.send(f"✅ Successfully linked **{username}** ({platform.name})!")
+        
+    except sqlite3.OperationalError as e:
+        # If the table is missing for some reason, fix it on the fly
+        if "no such table" in str(e):
+            init_db()
+            # Retry logic could go here, but a second click by the user is safer
+            await interaction.followup.send("⚠️ Database structure was missing but has been repaired. Please try the command again.")
+        else:
+            await interaction.followup.send(f"❌ Database Error: {e}")
 
 
 
@@ -432,18 +442,32 @@ async def rankme(interaction: discord.Interaction):
     
     # 2. Reuse your existing rank fetching logic here
     url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{saved_platform}/{saved_username}"
+
+
+    session = requests.Session()
+    
+    # These headers match what a real browser sends
     headers = {
         # 'TRN-Api-Key': str(TRACKER_KEY).strip(),
         'Accept': 'application/json, text/plain, */*',
-        'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://rocketleague.tracker.network/',
+        "Origin": "https://rocketleague.tracker.network",
+        "DNT": "1",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
     }
+
+    # Rotate between chrome versions to avoid fingerprint flagging
+    impersonations = ["chrome110", "chrome116", "chrome120"]
+    selected_profile = random.choice(impersonations)
 
     print(f"DEBUG: Testing this URL manually: {url}")
     
     try:
-        response = requests.get(url, headers=headers, impersonate="chrome120")
+        response = session.get(url, headers=headers, impersonate=selected_profile, timeout=10)
         if response.status_code == 200:
             segments = response.json()['data']['segments']
             
