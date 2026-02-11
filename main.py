@@ -328,7 +328,7 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
     headers = {
         # 'TRN-Api-Key': str(TRACKER_KEY).strip(),
         'Accept': 'application/json, text/plain, */*',
-        'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://rocketleague.tracker.network/',
         "Origin": "https://rocketleague.tracker.network",
