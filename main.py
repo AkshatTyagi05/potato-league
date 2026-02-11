@@ -1,3 +1,4 @@
+import asyncio
 from PIL import Image, ImageDraw, ImageFont
 import io
 import discord
@@ -305,6 +306,11 @@ class RankView(discord.ui.View):
     app_commands.Choice(name="Xbox", value="xbl")
 ])
 async def rank(interaction: discord.Interaction, platform: app_commands.Choice[str], username: str):
+
+    await interaction.response.defer()
+    
+    # Add a tiny "human" delay
+    await asyncio.sleep(random.uniform(0.5, 1.5))
     
     url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{platform.value}/{username}"
     print(f"DEBUG: Testing this URL manually: {url}")
@@ -314,6 +320,9 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
         url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/iiRw9"
     else:
         display_name= username
+
+
+    session = requests.Session()
     
     # These headers match what a real browser sends
     headers = {
@@ -323,10 +332,18 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://rocketleague.tracker.network/',
         "Origin": "https://rocketleague.tracker.network",
+        "DNT": "1",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-site",
     }
+
+    # Rotate between chrome versions to avoid fingerprint flagging
+    impersonations = ["chrome110", "chrome116", "chrome120"]
+    selected_profile = random.choice(impersonations)
+    
+    # Using a session to persist cookies and bypass basic Cloudflare checks
+    
 
     print(f"DEBUG: Testing this URL manually: {url}")
 
@@ -335,7 +352,7 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
 
     try:
         # We use impersonate="chrome" to mimic a real Chrome browser's TLS fingerprint
-        response = requests.get(url, headers=headers, impersonate="chrome")
+        response = session.get(url, headers=headers, impersonate=selected_profile, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
