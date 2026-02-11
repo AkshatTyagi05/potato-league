@@ -402,7 +402,7 @@ async def ranklink(interaction: discord.Interaction, platform: app_commands.Choi
     await interaction.response.defer(ephemeral=True)
 
     # FIX: Define the path variable by calling your helper function
-    path = get_db_path()
+    db_path = get_db_path()
     
     try:
         conn = sqlite3.connect(db_path)
@@ -433,7 +433,7 @@ async def ranklink(interaction: discord.Interaction, platform: app_commands.Choi
 async def rankme(interaction: discord.Interaction):
     await interaction.response.defer()
 
-    path = get_db_path()
+    db_path = get_db_path()
     
     # 1. Check Database for the user
     conn = sqlite3.connect("bot_data.db")
