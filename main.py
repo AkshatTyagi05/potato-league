@@ -154,9 +154,9 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
 
     if os.path.exists(plat_icon_path):
         p_img = Image.open(plat_icon_path).convert("RGBA").resize((50, 38))
-        base.paste(p_img, (37, 35), mask=p_img)
+        base.paste(p_img, (36, 35), mask=p_img)
 
-    draw.text((85, 34), f"{display_name.upper()}", font=font_header, fill=(255, 255, 255))
+    draw.text((84, 34), f"{display_name.upper()}", font=font_header, fill=(255, 255, 255))
     
     reward_key = reward_level.split()[0].lower()
     reward_color = rank_colors.get(reward_key, (219, 90, 115))
@@ -190,7 +190,7 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
             draw.text((x + 20, y + 15), display_mode_name, font=font_mode_title, fill=(100, 200, 255))
             draw.text((x + 20, y + 53), tier, font=font_rank_name, fill=text_color)
             draw.text((x + 20, y + 89), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_mode_title, fill=(200, 200, 200))
-            draw.text((x + 20, y + 114), f"{stats['rating']['value']} MMR", font=font_stats, fill=(160, 160, 160))
+            draw.text((x + 20, y + 115), f"{stats['rating']['value']} MMR", font=font_stats, fill=(160, 160, 160))
             draw.text((x + 20, y + 163), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_stats, fill=(140, 140, 140))
 
             icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
