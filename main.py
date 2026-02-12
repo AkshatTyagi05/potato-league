@@ -153,8 +153,8 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
     plat_icon_path = os.path.join(BASE_DIR, "icons", filename)
 
     if os.path.exists(plat_icon_path):
-        p_img = Image.open(plat_icon_path).convert("RGBA").resize((45, 38))
-        base.paste(p_img, (40, 35), mask=p_img)
+        p_img = Image.open(plat_icon_path).convert("RGBA").resize((50, 38))
+        base.paste(p_img, (37, 35), mask=p_img)
 
     draw.text((85, 34), f"{display_name.upper()}", font=font_header, fill=(255, 255, 255))
     
@@ -247,7 +247,7 @@ def draw_slanted_gradient(draw, base_img, start_color, end_color, polygon_coords
     # Paste the gradient onto the base image using the slanted mask
     base_img.paste(gradient, (0, 0), mask=mask)
 
-    
+
 
 # 1. INITIAL SETUP & KEY VERIFICATION
 # Loads your custom apikey.env file
