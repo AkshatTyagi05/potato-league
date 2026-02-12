@@ -119,6 +119,7 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
         font_mode_reward = ImageFont.truetype(font_path_bold, 27)  # Mode Titles
         font_rank_name = ImageFont.truetype(font_path_med, 34)  # Rank (Champion I, etc)
         font_stats = ImageFont.truetype(font_path_med, 23)      # Sub-stats
+        font_mmr = ImageFont.truetype(font_path_med, 24)      # Sub-stats
     except:
         font_header = font_mode_title = font_rank_name = font_stats = ImageFont.load_default()
 
@@ -190,8 +191,8 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
             draw.text((x + 20, y + 15), display_mode_name, font=font_mode_title, fill=(100, 200, 255))
             draw.text((x + 20, y + 53), tier, font=font_rank_name, fill=text_color)
             draw.text((x + 20, y + 89), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_mode_title, fill=(200, 200, 200))
-            draw.text((x + 20, y + 117), f"{stats['rating']['value']} MMR", font=font_stats, fill=(160, 160, 160))
-            draw.text((x + 20, y + 163), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_stats, fill=(140, 140, 140))
+            draw.text((x + 20, y + 119), f"{stats['rating']['value']} MMR", font=font_mmr, fill=(160, 160, 160))
+            draw.text((x + 20, y + 164), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_stats, fill=(140, 140, 140))
 
             icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
             if os.path.exists(icon_path):
