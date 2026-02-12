@@ -85,133 +85,169 @@ random_messages = [
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def create_rank_card(username, platform_name,display_name, segments,mode_type="standard"):
-    
-    
+def create_rank_card(username, platform_name, display_name, segments, mode_type="standard"):
     if mode_type == "extras":
         desired_modes = ['Rumble', 'Dropshot', 'Hoops', 'Heatseeker']
     else:
         desired_modes = ['Ranked Duel 1v1', 'Ranked Doubles 2v2', 'Ranked Standard 3v3', 'Tournament Matches']
-        
-    print(mode_type)
-
 
     # 1. Canvas Setup
-    base = Image.new("RGBA", (850, 550), (24, 28, 35))
+    base = Image.new("RGBA", (900, 600), (29, 33, 42))
     draw = ImageDraw.Draw(base)
 
-    print(username)
-    print(display_name)
-
-
-    # if(username.lower=="akshattyagi05"):
-    #     display_name= "AkshatTyagi05"
-    #     username="iiRw9"
-    # else:
-    #     display_name= username
-    
-    # Color mapping for rank accent colors
+    # Colors boosted in saturation/brightness to stand out
     rank_colors = {
         "bronze": (205, 127, 50), "silver": (192, 192, 192), "gold": (255, 215, 0),
-        "platinum": (0, 255, 255), "diamond": (0, 191, 255), "champion": (160, 32, 240),
-        "grand_champion": (255, 0, 0), "supersonic_legend": (255, 255, 255), "unranked": (150, 150, 150)
+        "platinum": (0, 255, 255), "diamond": (0, 191, 255), "champion": (160, 32, 240),"grand": (255, 50, 50),
+        "grand_champion": (255, 50, 50), "supersonic_legend": (255, 255, 255), "unranked": (150, 150, 150)
     }
 
-    # 2. Extract Reward Level Dynamically
     reward_level = "Unranked"
     for s in segments:
-        if s['type'] == 'overview': # TRN often places rewards in the overview segment
+        if s['type'] == 'overview':
             reward_level = s['stats'].get('seasonRewardLevel', {}).get('metadata', {}).get('rankName', 'Unranked')
             break
 
-    # 2. Fonts
-    font_path = os.path.join(BASE_DIR, "TitilliumWeb-Bold.ttf")
-    try:
-        font_main = ImageFont.truetype(font_path, 32)   
-        font_main_small = ImageFont.truetype(font_path, 26) # Added for long rank names
-        font_bigsub = ImageFont.truetype(font_path, 22)    
-        font_sub = ImageFont.truetype(font_path, 20)    
-        font_med = ImageFont.truetype(font_path, 18)    
-        font_smallmed = ImageFont.truetype(font_path, 17)  
-        font_small = ImageFont.truetype(font_path, 16)
-    except:
-        font_main = font_sub = font_med = font_small = ImageFont.load_default()
-        font_main_small = ImageFont.load_default()
-
-
-
-    # --- 4. TOP NAVBAR ---
-    draw.rounded_rectangle([25, 20, 825, 80], radius=10, fill=(30, 34, 43))
+    # 2. Updated Fonts (Moved from Light/Medium to Medium/Bold)
+    # Ensure Bourgeois-Medium.ttf and Bourgeois-Bold.ttf are in your directory
+    font_path_med = os.path.join(BASE_DIR, "Bourgeois-Medium.ttf")
+    font_path_bold = os.path.join(BASE_DIR, "Bourgeois-Bold.ttf")
     
-    platform_map = {"epic": "epic.png", "steam": "steam.png", "xbl": "xbl.png", "psn": "psn.png", "xbox": "xbl.png", "playstation": "psn.png"}
+    try:
+        font_header = ImageFont.truetype(font_path_bold, 29)    # Player Name
+        font_mode_title = ImageFont.truetype(font_path_med, 26)  # Mode Titles
+        font_mode_reward = ImageFont.truetype(font_path_bold, 27)  # Mode Titles
+        font_rank_name = ImageFont.truetype(font_path_med, 34)  # Rank (Champion I, etc)
+        font_stats = ImageFont.truetype(font_path_med, 24)      # Sub-stats
+    except:
+        font_header = font_mode_title = font_rank_name = font_stats = ImageFont.load_default()
+
+    # --- 3. UPDATED HEADER (Clipped at Dividers) ---
+    tile_color = (27, 31, 39)
+    # First, draw the background bar for the whole header (Dark)
+    draw.rounded_rectangle([25, 20, 875, 85], radius=12, fill=tile_color)
+    
+    # Second, draw the COLOR fill only till the first slanted divider (approx 450px)
+    # We use a polygon to create the slanted edge at the end of the color bar
+
+    grad_start = (85, 200, 255,100)  # Vibrant Blue (with your requested transparency)
+    grad_end = (170, 100, 255,100)   # Vibrant Purple
+
+    # Define the coordinates for the slanted color bar
+    # Stopping at approximately 450px as before
+    poly_coords = [(25, 20), (450, 20), (420, 85), (25, 85)]
+    draw_slanted_gradient(draw, base, grad_start, grad_end, poly_coords)
+
+    # Smooth the far-left rounded corner with the starting blue
+    draw.pieslice([25, 20, 50, 85], 90, 270, fill=grad_start)
+
+    # Third, draw the Slanted Divider Design Elements
+    for i in range(3):
+        x_off = 480 + (i * 25)
+        draw.line([x_off, 20, x_off - 30, 85], fill=tile_color, width=12)
+
+    # --- 4. ASSETS & TEXT ---
+    platform_map = {"epic": "epic.png", "steam": "steam.png", "xbl": "xbl.png", "psn": "psn.png"}
     input_plat = platform_name.lower().split()[0]
     filename = platform_map.get(input_plat, "epic.png")
     plat_icon_path = os.path.join(BASE_DIR, "icons", filename)
 
     if os.path.exists(plat_icon_path):
-        p_img = Image.open(plat_icon_path).convert("RGBA")
-        ratio = min(40 / p_img.width, 40 / p_img.height)
-        new_size = (int(p_img.width * ratio), int(p_img.height * ratio))
-        plat_icon = p_img.resize(new_size, Image.Resampling.LANCZOS)
-        base.paste(plat_icon, (45, 50 - (new_size[1] // 2)), mask=plat_icon)
+        p_img = Image.open(plat_icon_path).convert("RGBA").resize((45, 38))
+        base.paste(p_img, (40, 35), mask=p_img)
 
-    draw.text((100, 26), f"{display_name}", font=font_main, fill=(255, 255, 255))
+    draw.text((85, 34), f"{display_name.upper()}", font=font_header, fill=(255, 255, 255))
     
-    # Adjusted Reward Level position to avoid edge clipping
     reward_key = reward_level.split()[0].lower()
     reward_color = rank_colors.get(reward_key, (219, 90, 115))
-    draw.text((640, 38), f"{reward_level}", font=font_sub, fill=reward_color)
+    draw.text((640, 38), f"{reward_level}", font=font_mode_reward, fill=reward_color)
 
     # --- 5. RANK TILES ---
-    positions = [(25, 100), (435, 100), (25, 320), (435, 320)]
+    positions = [(25, 110), (465, 110), (25, 345), (465, 345)]
     segment_map = {s['metadata']['name']: s for s in segments if s['type'] == 'playlist'}
     
     for count, mode_key in enumerate(desired_modes):
         x, y = positions[count]
-        draw.rounded_rectangle([x, y, x + 390, y + 200], radius=10, fill=(30, 34, 43))
+        draw.rounded_rectangle([x, y, x + 410, y + 215], radius=12, fill=tile_color)
         
         if mode_key in segment_map:
             s = segment_map[mode_key]
             stats = s['stats']
-            
-            display_mode_name = "Tournament Rank" if mode_key == 'Tournament Matches' else mode_key
+
+            # NEW MAPPING: Shortens all main mode names for the UI
+            short_names = {
+                'Ranked Duel 1v1': 'Ranked 1v1',
+                'Ranked Doubles 2v2': 'Ranked 2v2',
+                'Ranked Standard 3v3': 'Ranked 3v3',
+                'Tournament Matches': 'Tournament Rank'
+            }
+            display_mode_name = short_names.get(mode_key, mode_key)
             tier = stats['tier']['metadata']['name']
-            
-            # Logic for long rank names
-            current_font = font_main_small if len(tier) > 15 else font_main
             rank_base = tier.split()[0].lower()
             text_color = rank_colors.get(rank_base, (255, 255, 255))
             file_rank = tier.lower().replace(" ", "_").replace("_iii", "_3").replace("_ii", "_2").replace("_i", "_1")
 
-            # Column 1: Stats (Slightly moved left to give rank more room)
-            draw.text((x + 20, y + 13), display_mode_name, font=font_bigsub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 52), tier, font=current_font, fill=text_color)
-            draw.text((x + 20, y + 90), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_med, fill=(200, 200, 200))
-            draw.text((x + 20, y + 121), f"{stats['rating']['value']} MMR", font=font_med, fill=(160, 160, 160))
-            draw.text((x + 20, y + 160), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_small, fill=(140, 140, 140))
+            draw.text((x + 20, y + 15), display_mode_name, font=font_mode_title, fill=(100, 200, 255))
+            draw.text((x + 20, y + 53), tier, font=font_rank_name, fill=text_color)
+            draw.text((x + 20, y + 89), stats.get('division', {}).get('metadata', {}).get('name', ''), font=font_mode_title, fill=(200, 200, 200))
+            draw.text((x + 20, y + 114), f"{stats['rating']['value']} MMR", font=font_stats, fill=(160, 160, 160))
+            draw.text((x + 20, y + 163), f"{stats.get('matchesPlayed', {}).get('value', 0)} Matches", font=font_stats, fill=(140, 140, 140))
 
-            # Column 2: Icon (Shifted right from 250 to 265 to prevent overlap)
             icon_path = os.path.join(BASE_DIR, "icons", f"{file_rank}.png")
             if os.path.exists(icon_path):
-                icon = Image.open(icon_path).convert("RGBA").resize((110, 110)) # Slightly bigger icon
-                base.paste(icon, (x + 265, y + 23), mask=icon)
+                icon = Image.open(icon_path).convert("RGBA").resize((105, 105))
+                base.paste(icon, (x + 287, y + 24), mask=icon)
 
             streak_data = stats.get('winStreak', {})
             val = streak_data.get('value', 0)
             stype = streak_data.get('metadata', {}).get('type', 'win') 
-            
-            streak_text = f"{val} {'Loss' if stype == 'loss' and val == 1 else 'Loss' if stype == 'loss' else 'Win' if val == 1 else 'Wins'}"
+            streak_text = f"{val} {'Loss' if stype == 'loss' else 'Win'}{'s' if val != 1 and stype == 'win' else '' if val != 1 else ''}"
             streak_color = (255, 60, 60) if stype == 'loss' else (0, 255, 100)
-            # Centered under the new icon position
-            draw.text((x + 295, y + 160), streak_text, font=font_smallmed, fill=streak_color)
+            draw.text((x + 314, y + 155), streak_text, font=font_stats, fill=streak_color)
         else:
-            draw.text((x + 20, y + 20), mode_key, font=font_sub, fill=(100, 200, 255))
-            draw.text((x + 20, y + 55), "Unranked", font=font_main, fill=(150, 150, 150))
+            draw.text((x + 20, y + 20), mode_key, font=font_mode_title, fill=(100, 200, 255))
+            draw.text((x + 20, y + 55), "Unranked", font=font_rank_name, fill=(150, 150, 150))
+            # ADD THIS: Show unranked icon even if the mode isn't in segment_map
+            unranked_icon_path = os.path.join(BASE_DIR, "icons", "unranked.png")
+            if os.path.exists(unranked_icon_path):
+                u_icon = Image.open(unranked_icon_path).convert("RGBA").resize((110, 110))
+                base.paste(u_icon, (x + 286, y + 25), mask=u_icon)
 
     buffer = io.BytesIO()
     base.save(buffer, format="PNG")
     buffer.seek(0)
     return discord.File(fp=buffer, filename="rank_card.png")
+
+
+def draw_slanted_gradient(draw, base_img, start_color, end_color, polygon_coords):
+    """Draws a linear horizontal gradient within a slanted polygon."""
+    # Find the bounds of the polygon
+    min_x = min(p[0] for p in polygon_coords)
+    max_x = max(p[0] for p in polygon_coords)
+    
+    # Create a mask for the slanted shape
+    mask = Image.new('L', base_img.size, 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.polygon(polygon_coords, fill=255)
+    
+    # Create the gradient overlay
+    gradient = Image.new('RGBA', base_img.size)
+    for x in range(min_x, max_x + 1):
+        # Calculate the color at this X position
+        mix = (x - min_x) / (max_x - min_x)
+        r = int(start_color[0] + (end_color[0] - start_color[0]) * mix)
+        g = int(start_color[1] + (end_color[1] - start_color[1]) * mix)
+        b = int(start_color[2] + (end_color[2] - start_color[2]) * mix)
+        a = start_color[3] if len(start_color) > 3 else 255
+        
+        # Draw a vertical line for this color step
+        draw_grad = ImageDraw.Draw(gradient)
+        draw_grad.line([(x, 0), (x, base_img.height)], fill=(r, g, b, a))
+    
+    # Paste the gradient onto the base image using the slanted mask
+    base_img.paste(gradient, (0, 0), mask=mask)
+
+    
 
 # 1. INITIAL SETUP & KEY VERIFICATION
 # Loads your custom apikey.env file
@@ -493,3 +529,8 @@ async def rankme(interaction: discord.Interaction):
 # 4. RUN THE BOT
 if TOKEN:
     bot.run(TOKEN)
+    # if(username.lower=="akshattyagi05"):
+    #     display_name= "AkshatTyagi05"
+    #     username="iiRw9"
+    # else:
+    #     display_name= username
