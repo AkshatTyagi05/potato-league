@@ -117,7 +117,7 @@ def create_rank_card(username, platform_name, display_name, segments, mode_type=
         font_header = ImageFont.truetype(font_path_bold, 29)    # Player Name
         font_mode_title = ImageFont.truetype(font_path_med, 26)  # Mode Titles
         font_mode_reward = ImageFont.truetype(font_path_bold, 27)  # Mode Titles
-        font_rank_name = ImageFont.truetype(font_path_med, 34)  # Rank (Champion I, etc)
+        font_rank_name = ImageFont.truetype(font_path_bold, 33)  # Rank (Champion I, etc)
         font_stats = ImageFont.truetype(font_path_med, 23)      # Sub-stats
         font_mmr = ImageFont.truetype(font_path_med, 24)      # Sub-stats
     except:
