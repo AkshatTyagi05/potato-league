@@ -352,12 +352,13 @@ async def rank(interaction: discord.Interaction, platform: app_commands.Choice[s
     
     url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/{platform.value}/{username}"
     print(f"DEBUG: Testing this URL manually: {url}")
-    if(username.lower()=="akshattyagi05"):
-        display_name= "AkshatTyagi05"
-        username="iiRw9"
-        url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/iiRw9"
-    else:
-        display_name= username
+    # if(username.lower()=="akshattyagi05"):
+    #     display_name= "AkshatTyagi05"
+    #     username="iiRw9"
+    #     url = f"https://api.tracker.gg/api/v2/rocket-league/standard/profile/epic/iiRw9"
+    # else:
+    #     display_name= username
+    display_name= username
 
 
     session = requests.Session()
