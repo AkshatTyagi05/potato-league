@@ -43,9 +43,11 @@ init_db()
 # --- 2. BOT CLASS ---
 class RLBot(discord.Client):
     def __init__(self):
-        intents = discord.Intents.default()
-        intents.members = True
-        super().__init__(intents=intents)
+        # Default intents only - none of the commands (rank/ranklink/rankme/
+        # rankunlink) need the privileged "Server Members" intent, and
+        # requesting it requires explicitly enabling it in the Discord
+        # Developer Portal or the bot fails to connect entirely.
+        super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
@@ -374,7 +376,7 @@ async def fetch_player_segments(platform_value: str, username: str, max_attempts
 # this second definition in the original file was dead code and has been removed)
 
 class RankView(discord.ui.View):
-    BUTTON_COOLDOWN_SECONDS = 20.0
+    BUTTON_COOLDOWN_SECONDS = 15.0
 
     def __init__(self, username, platform_value, display_name, segments):
         super().__init__(timeout=None)
